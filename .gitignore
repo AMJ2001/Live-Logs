@@ -1,0 +1,42 @@
+# Node.js dependencies  
+node_modules/  
+npm-debug.log  
+yarn-error.log  
+pnpm-lock.yaml  
+
+# Environment variables  
+.env  
+.env.local  
+.env.production  
+.env.test  
+
+# Build and output directories  
+dist/  
+out/  
+.next/  
+
+# Logs  
+logs/  
+*.log  
+*.log.*  
+
+# Docker  
+docker-compose.override.yml  
+docker-volumes/  
+
+# Redis data (if using local persistence)  
+dump.rdb  
+appendonly.aof  
+
+# Supabase generated files  
+supabase/.temp/  
+
+# IDE/Editor files  
+.vscode/  
+.idea/  
+.DS_Store  
+Thumbs.db  
+
+# Debugging  
+coverage/  
+*.swp  
