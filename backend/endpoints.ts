@@ -24,7 +24,6 @@ export const getStats = async (_req: Request, res: Response) => {
   }
 };
 
-// api/stats/[jobId].ts - Fetch stats for a specific job
 export const getJobStats = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
@@ -37,8 +36,55 @@ export const getJobStats = async (req: Request, res: Response) => {
 };
 
 export const queueStatus = async (_req: Request, res: Response) => {
-  const active = await logQueue.getActiveCount();
-  const waiting = await logQueue.getWaitingCount();
-  const completed = await logQueue.getCompletedCount();
-  res.json({ active, waiting, completed });
+  try {
+    const active = await logQueue.getActiveCount();
+    const waiting = await logQueue.getWaitingCount();
+    const completed = await logQueue.getCompletedCount();
+    res.json({ active, waiting, completed });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const loginUser = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) return res.status(400).json({ error: error.message });
+    return res.status(200).json({ user: data.user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const signupUser = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+
+    if (error) return res.status(400).json({ error: error.message });
+    return res.status(200).json({ user: data.user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const logoutUser = async (_req: Request, res: Response) => {
+  try {
+    await supabase.auth.signOut();
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getUser = async (_req: Request, res: Response) => {
+  try {
+    const { data: user, error } = await supabase.auth.getUser();
+    if (error) return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
