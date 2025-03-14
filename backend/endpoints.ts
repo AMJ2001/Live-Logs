@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { logQueue } from './logQueue';
 import { supabase } from './supabaseClient';
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: 3001 });
 
 export const uploadLogs = async (req: Request, res: Response) => {
   try {
@@ -88,3 +91,45 @@ export const getUser = async (_req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const githubLogin = async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+    });
+
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ url: data.url }); // Redirect frontend to GitHub login page
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const requireAuth = async (req: Request, res: Response, next: Function) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error) return res.status(401).json({ error: 'Invalid token' });
+
+  req.user = data.user;
+  next();
+};
+
+wss.on("connection", (ws) => {
+  console.log("Client connected");
+
+  const sendStats = () => {
+    const stats = {
+      errors: Math.floor(Math.random() * 50),
+      keywords: ["error", "warning", "failed"],
+      ips: ["192.168.1.1", "10.0.0.1"],
+    };
+    ws.send(JSON.stringify(stats));
+  };
+
+  sendStats(); // Send initial data
+  const interval = setInterval(sendStats, 5000); // Update every 5s
+
+  ws.on("close", () => clearInterval(interval));
+});

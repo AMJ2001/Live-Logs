@@ -1,95 +1,111 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [stats, setStats] = useState<{ errors: number; keywords: string[]; ips: string[] } | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:3001");
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setStats(data);
+    };
+
+    return () => socket.close();
+  }, []);
+
+  const handleFileUpload = async () => {
+    if (!file) return alert("Please select a file");
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload-logs", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      alert("File uploaded successfully 🎉");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen px-4">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="glass p-10 max-w-3xl w-full text-center shadow-lg"
+      >
+        <h1 className="text-4xl font-bold mb-6">Log Processing Dashboard</h1>
+        <p className="text-gray-300 mb-8">Monitor and manage log processing in real-time.</p>
+
+        <div className="glass p-6 rounded-xl shadow-lg">
+          <input type="file" className="text-gray-300 mb-4" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <button
+            className="btn w-full flex items-center justify-center"
+            onClick={handleFileUpload}
+            disabled={uploading}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+            {uploading ? <Loader2 className="animate-spin" /> : "Upload Log File"}
+          </button>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Stats Section */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <h2 className="text-2xl font-semibold text-center mb-4">Live Log Stats</h2>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Errors</th>
+                  <th>Keywords</th>
+                  <th>IP Addresses</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats ? (
+                  <motion.tr
+                    key={stats.errors}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="hover:bg-gray-700 transition-all duration-200"
+                  >
+                    <td>{stats.errors}</td>
+                    <td>{stats.keywords.join(", ")}</td>
+                    <td>{stats.ips.join(", ")}</td>
+                  </motion.tr>
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="text-center p-3">
+                      No data available 💤
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
