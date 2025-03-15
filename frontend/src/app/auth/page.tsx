@@ -23,7 +23,7 @@ export default function Auth() {
       if (data.session) {
         localStorage.setItem("supabase_jwt", data.session.access_token);
         setSession(data.session);
-        router.push("/dashboard");
+        router.push("/");
       }
     };
     fetchSession();
@@ -37,7 +37,7 @@ export default function Auth() {
     setLoading(false);
     if (data.session) {
       localStorage.setItem("supabase_jwt", data.session.access_token);
-      router.push("/dashboard");
+      router.push("/");
     } else if (error) {
       alert(error.message);
     }

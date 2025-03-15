@@ -19,49 +19,14 @@ export const uploadLogsHandler = async (req: Request, res: Response) => {
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
     } else {
-      const filePath = req.file.path;
-      console.log(req.file.path);
+      const filePath = req.file.path as string;
       const job = await logQueue.add("process-log", { filePath });
-      console.log(job);
       res.json({ jobId: job.id, message: "Log file queued for processing" });
     }
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
-
-export const uploadLogs = [
-  upload.single("file"), // Expecting 'file' key in FormData
-  async (req: Request, res: Response) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const { originalname, buffer } = req.file;
-
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from("logs") // Replace with your actual bucket name
-        .upload(`logs/${Date.now()}_${originalname}`, buffer, {
-          contentType: req.file.mimetype,
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Enqueue a job in BullMQ
-      const job = await logQueue.add("process-log", {
-        fileId: data.path,
-        filePath: data.fullPath, // Adjust based on Supabase response
-      });
-
-      res.json({ jobId: job.id, message: "Log file queued for processing" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  },
-];
 
 export const getStats = async (_req: Request, res: Response) => {
   try {
@@ -75,7 +40,7 @@ export const getStats = async (_req: Request, res: Response) => {
 
 export const getJobStats = async (req: Request, res: Response) => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params as Record<string, string>;
     const { data, error } = await supabase.from('log_stats').select('*').eq('job_id', jobId);
     if (error) throw error;
     res.json(data);
@@ -90,15 +55,6 @@ export const queueStatus = async (_req: Request, res: Response) => {
     const waiting = await logQueue.getWaitingCount();
     const completed = await logQueue.getCompletedCount();
     res.json({ active, waiting, completed });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const logoutUser = async (_req: Request, res: Response) => {
-  try {
-    await supabase.auth.signOut();
-    res.status(200).json({ message: 'Logged out successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -128,13 +84,13 @@ export const githubLogin = async (req: Request, res: Response) => {
 };
 
 export const requireAuth = async (req: Request, res: Response, next: Function) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const token = req.headers.authorization as string;
+  console.log(req.headers, req.header);
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
 
   const { data, error } = await supabase.auth.getUser(token);
   if (error) { res.status(401).json({ error: 'Invalid token' }); }
 
-  //req['user'] = data.user;
   next();
 };
 
