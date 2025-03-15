@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
-import { logQueue } from './logQueue';
+import { logQueue, queueEvents } from './logQueue';
 import { supabase } from './supabaseClient';
 import { WebSocketServer } from "ws";
 import multer from "multer";
-const wss = new WebSocketServer({ port: 3001 });
+const wss = new WebSocketServer({ port: Number(process.env.WEBSOCKET_PORT) || 3001 });
 
 const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) => {
+  destination: process.env.UPLOAD_PATH || "uploads/",
+  filename: (_, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
@@ -19,7 +19,7 @@ export const uploadLogsHandler = async (req: Request, res: Response) => {
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
     } else {
-      const filePath = req.file.path as string;
+      const filePath = req.file.path;
       const job = await logQueue.add("process-log", { filePath });
       res.json({ jobId: job.id, message: "Log file queued for processing" });
     }
@@ -31,8 +31,14 @@ export const uploadLogsHandler = async (req: Request, res: Response) => {
 export const getStats = async (_req: Request, res: Response) => {
   try {
     const { data, error } = await supabase.from('log_stats').select('*');
-    if (error) throw error;
-    res.json(data);
+    if (error) { throw error; }
+
+    const formattedData = data.map((ele: any) => ({
+      jobId: ele.jobid, 
+      fileName: ele.file_path.split('/').pop(), 
+      status: ele.error_count > 0 ? "Failed" : "Success", 
+    }));
+    res.json(formattedData);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -41,9 +47,16 @@ export const getStats = async (_req: Request, res: Response) => {
 export const getJobStats = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params as Record<string, string>;
-    const { data, error } = await supabase.from('log_stats').select('*').eq('job_id', jobId);
-    if (error) throw error;
-    res.json(data);
+    const { data, error } = await supabase.from('log_stats').select('*').eq('jobid', jobId);
+    if (error) { throw error; }
+    const formattedData = data.map((ele: any) => ({
+      jobId: ele.jobid, 
+      fileName: ele.file_path.split('/').pop(), 
+      status: ele.error_count > 0 ? "Failed" : "Success", 
+      keywords: ele.keyword_hits,
+      ips: ele.ip_hits
+    }));
+    res.json(formattedData);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -60,54 +73,27 @@ export const queueStatus = async (_req: Request, res: Response) => {
   }
 };
 
-export const getUser = async (_req: Request, res: Response) => {
-  try {
-    const { data: user, error } = await supabase.auth.getUser();
-    if (error) { res.status(401).json({ error: 'Unauthorized' }); }
-    res.status(200).json({ user });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const githubLogin = async (req: Request, res: Response) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
-    });
-
-    if (error) { res.status(400).json({ error: error.message }); }
-    res.json({ url: data.url }); // Redirect frontend to GitHub login page
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 export const requireAuth = async (req: Request, res: Response, next: Function) => {
-  const token = req.headers.authorization as string;
-  console.log(req.headers, req.header);
-  if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
-
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error) { res.status(401).json({ error: 'Invalid token' }); }
-
-  next();
+  try {
+    const token = req.headers.authorization as string;
+    if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error) { res.status(401).json({ error: 'Invalid token' }); }
+    next();
+  } catch (err) {
+    res.status(400).json({ error: 'Unable to authorize' });
+  }
 };
 
-wss.on("connection", (ws) => {
-  console.log("Client connected");
+queueEvents.on("progress", (job) => {
+  wss.clients.forEach((client) => {
+    console.log('wss', job);
+    client.send(JSON.stringify({ type: "jobUpdate", payload: { jobId: job.jobId, status: "in-progress" } }));
+  });
+});
 
-  const sendStats = () => {
-    const stats = {
-      errors: Math.floor(Math.random() * 50),
-      keywords: ["error", "warning", "failed"],
-      ips: ["192.168.1.1", "10.0.0.1"],
-    };
-    ws.send(JSON.stringify(stats));
-  };
-
-  sendStats(); // Send initial data
-  const interval = setInterval(sendStats, 5000); // Update every 5s
-
-  ws.on("close", () => clearInterval(interval));
+queueEvents.on("completed", (job) => {
+  wss.clients.forEach((client) => {
+    client.send(JSON.stringify({ type: "jobUpdate", payload: { jobId: job.jobId, status: "completed" } }));
+  });
 });

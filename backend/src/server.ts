@@ -1,8 +1,9 @@
 import express from 'express';
 import cors from "cors";
 import dotenv from 'dotenv';
-import { getJobStats, getStats, getUser, githubLogin,queueStatus, requireAuth, upload, uploadLogsHandler } from './endpoints';
+import { getJobStats, getStats,queueStatus, requireAuth, upload, uploadLogsHandler } from './endpoints';
 import { redis } from './redisClient';
+import './logWorker';
 
 dotenv.config();
 
@@ -16,8 +17,8 @@ redis.on("error", (err) => console.error("Redis error:", err));
 
 app.post("/api/upload-logs", upload.single("file"), uploadLogsHandler);
 
-app.get('/api/auth/user', getUser);
-app.get('/api/auth/github-login', githubLogin);
+app.get('/api/auth/user');
+app.get('/api/auth/github-login');
 
 app.get('/api/stats', requireAuth, getStats);
 app.get('/api/stats/:jobId', requireAuth, getJobStats);

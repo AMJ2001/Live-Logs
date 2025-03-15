@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import { redis } from './redisClient';
 
 export const logQueue = new Queue('log-processing-queue', {
@@ -10,4 +10,8 @@ export const logQueue = new Queue('log-processing-queue', {
       delay: 5000,
     },
   },
+});
+
+export const queueEvents = new QueueEvents('log-processing-queue', {
+  connection: redis,
 });

@@ -5,37 +5,52 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/utils";
 import router from "next/router";
 
+const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function Home() {
-  const [stats, setStats] = useState<{ errors: number; keywords: string[]; ips: string[] } | null>(null);
-  const [queueStatus, setQueueStatus] = useState<Record<string, string> | null>(null);
-  const [jobStats, setJobStats] = useState<{ jobId: string; errors: number; keywords: string[]; ips: string[] } | null>(
-    null
-  );
+  const [queueStatus, setQueueStatus] = useState<{ active: number; waiting: number; completed: number } | null>(null);
+  const [jobs, setJobs] = useState<{ jobId: string; fileName: string; status: string }[]>([]);
+  const [selectedJobStats, setSelectedJobStats] = useState<{ jobId: string; errors: number; keywords: string[]; ips: string[] } | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [jobs, setJobs] = useState<{ jobId: string }[]>([]);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:3001");
+    if (!WEBSOCKET_URL) return;
+    const socket = new WebSocket(`${WEBSOCKET_URL}/api/live-stats`);
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      setStats(data);
+      if (data.type === "queueStatus") {
+        setQueueStatus(data.payload);
+      } else if (data.type === "jobUpdate") {
+        setJobs((prevJobs) =>
+          prevJobs.map((job) => (job.jobId === data.payload.jobId ? { ...job, status: data.payload.status } : job))
+        );
+      }
+    };
+
+    socket.onclose = () => {
+      setTimeout(() => {
+        const reconnectSocket = new WebSocket(`${WEBSOCKET_URL}/api/live-stats`);
+        reconnectSocket.onmessage = socket.onmessage;
+      }, 3000);
     };
 
     return () => socket.close();
   }, []);
 
   useEffect(() => {
+    fetchJobs();
     fetchQueueStatus();
   }, []);
 
   const fetchQueueStatus = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/queue-status", {
-        headers: { authorization: localStorage.getItem('supabase_jwt') || '' }
+      const res = await fetch(`${API_BASE_URL}/api/queue-status`, {
+        headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
       });
-      if (!res.ok) { throw new Error("Failed to fetch queue status"); }
+      if (!res.ok) throw new Error("Failed to fetch queue status");
       const data = await res.json();
       setQueueStatus(data);
     } catch (error: any) {
@@ -43,12 +58,27 @@ export default function Home() {
     }
   };
 
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/stats`, {
+        headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
+      });
+      if (!res.ok) throw new Error("Failed to fetch jobs");
+      const data = await res.json();
+      setJobs(data);
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
+
   const fetchJobStats = async (jobId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/stats/${jobId}`);
+      const res = await fetch(`${API_BASE_URL}/api/stats/${jobId}`, {
+        headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
+      });
       if (!res.ok) throw new Error("Failed to fetch job stats");
       const data = await res.json();
-      setJobStats({ jobId, ...data });
+      setSelectedJobStats({ jobId, ...data });
     } catch (error: any) {
       console.error(error.message);
     }
@@ -60,21 +90,28 @@ export default function Home() {
       return;
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size should be less than 5MB.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
 
     setUploading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/upload-logs", {
+      const res = await fetch(`${API_BASE_URL}/api/upload-logs`, {
         method: "POST",
         body: formData,
+        headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
       });
 
       if (!res.ok) throw new Error("Upload failed");
 
       alert("File uploaded successfully 🎉");
       fetchQueueStatus();
+      fetchJobs();
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -88,7 +125,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4"> 
+    <div className="flex flex-col items-center justify-center min-h-screen px-4">
       <div>
         <button onClick={logout}>Logout</button>
       </div>
@@ -134,47 +171,8 @@ export default function Home() {
                   </tr>
                 ) : (
                   <tr>
-                    <td colSpan={3} className="text-center p-3">Loading...</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-        {/* Live Stats Table */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
-        >
-          <h2 className="text-2xl font-semibold text-center mb-4">Live Log Stats</h2>
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Errors</th>
-                  <th>Keywords</th>
-                  <th>IP Addresses</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats ? (
-                  <motion.tr
-                    key={stats.errors}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="hover:bg-gray-700 transition-all duration-200"
-                  >
-                    <td>{stats.errors}</td>
-                    <td>{stats.keywords.join(", ")}</td>
-                    <td>{stats.ips.join(", ")}</td>
-                  </motion.tr>
-                ) : (
-                  <tr>
                     <td colSpan={3} className="text-center p-3">
-                      No data available 💤
+                      Loading...
                     </td>
                   </tr>
                 )}
@@ -183,25 +181,62 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Job Stats */}
-        {jobs.length > 0 && (
-          <motion.div className="mt-8 glass p-6 rounded-xl shadow-xl w-full">
-            <h2 className="text-2xl font-semibold text-center mb-4">Job Stats</h2>
-            <ul>
-              {jobs.map((job) => (
-                <li key={job.jobId} className="cursor-pointer hover:underline text-blue-400" onClick={() => fetchJobStats(job.jobId)}>
-                  View Job {job.jobId}
-                </li>
-              ))}
-            </ul>
-            {jobStats && (
-              <div className="mt-4">
-                <h3 className="text-xl font-semibold">Details for Job {jobStats.jobId}</h3>
-                <p>Errors: {jobStats.errors}</p>
-                <p>Keywords: {jobStats.keywords.join(", ")}</p>
-                <p>IPs: {jobStats.ips.join(", ")}</p>
-              </div>
-            )}
+        {/* Jobs Table */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
+        >
+          <h2 className="text-2xl font-semibold text-center mb-4">Jobs</h2>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>File Name</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.length > 0 ? (
+                  jobs.map((job) => (
+                    <tr key={job.jobId} className="hover:bg-gray-700 transition-all duration-200">
+                      <td
+                        className="cursor-pointer text-blue-400 hover:underline"
+                        onClick={() => fetchJobStats(job.jobId)}
+                      >
+                        {job.jobId}
+                      </td>
+                      <td>{job.fileName}</td>
+                      <td>{job.status}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="text-center p-3">
+                      No jobs available 💤
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Selected Job Stats */}
+        {selectedJobStats && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
+          >
+            <h2 className="text-2xl font-semibold text-center mb-4">Job Details</h2>
+            <p>Job ID: {selectedJobStats.jobId}</p>
+            <p>Errors: {selectedJobStats.errors || 'None'}</p>
+            <p>Keywords: {selectedJobStats.keywords}</p>
+            <p>IP Addresses: {selectedJobStats.ips}</p>
           </motion.div>
         )}
       </motion.div>

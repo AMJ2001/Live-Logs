@@ -27,6 +27,7 @@ const processLog = async (job: Job) => {
     if (match) {
       const [, timestamp, level, message, jsonPayload] = match;
       const jsonData = jsonPayload ? JSON.parse(jsonPayload) : {};
+      console.log(jsonData);
 
       if (level.toLowerCase() === 'error') errorCount++;
 
@@ -42,12 +43,12 @@ const processLog = async (job: Job) => {
 
   // Store stats in Supabase
   const { error } = await supabase.from('log_stats').insert({
-    filePath: job.data.filePath,
-    totalLines,
-    errorCount,
-    keywordHits,
-    ipHits,
-    processedAt: new Date(),
+    file_path: job.data.filePath,
+    total_lines: totalLines,
+    error_count: errorCount,
+    keyword_hits: keywordHits,
+    ip_hits: ipHits,
+    processed_at: new Date(),
   });
 
   if (error) throw new Error(`Supabase Insert Error: ${error.message}`);
@@ -55,7 +56,7 @@ const processLog = async (job: Job) => {
   console.log(`✅ Completed processing: ${job.data.filePath}`);
 };
 
-const worker = new Worker('log-processing-queue', processLog, {
+export const worker = new Worker('log-processing-queue', processLog, {
   connection: redis,
   concurrency: 4,
 });
