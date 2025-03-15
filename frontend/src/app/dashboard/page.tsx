@@ -1,25 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/utils";
 
 export default function Dashboard() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const res = await fetch("/api/auth", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-      const data = await res.json();
-      if (!res.ok) router.push("/auth");
-      else setUser(data.user);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        router.push("/auth");
+      } else {
+        setUser({ email: session.user.email || "Guest user" });
+      }
     };
 
-    fetchUser();
+    checkSession();
   }, []);
 
   const logout = async () => {
-    await fetch("/api/auth", { method: "POST", body: JSON.stringify({ type: "logout" }) });
-    localStorage.removeItem("token");
+    await supabase.auth.signOut();
     router.push("/auth");
   };
 

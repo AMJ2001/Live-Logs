@@ -20,19 +20,21 @@ export default function Home() {
   }, []);
 
   const handleFileUpload = async () => {
-    if (!file) return alert("Please select a file");
-
-    setUploading(true);
+    if (!file) {
+      alert("Please select a file.");
+      return;
+    }
+  
     const formData = new FormData();
-    formData.append("file", file);
-
+    formData.append("file", file); // Append the selected file
+  
     try {
-      const res = await fetch("/api/upload-logs", {
+      const res = await fetch("http://localhost:5000/api/upload-logs", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) { throw new Error("Upload failed"); }
       alert("File uploaded successfully 🎉");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {

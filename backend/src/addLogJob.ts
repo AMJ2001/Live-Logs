@@ -1,4 +1,4 @@
-import { logQueue } from './logQueue';
+import { logQueue } from "./logQueue";
 
 export const addLogJob = async (filePath: string, fileSize: number) => {
   const priority = fileSize < 5 * 1024 * 1024 ? 1 : 2; // Smaller files get higher priority

@@ -1,19 +1,24 @@
 import express from 'express';
+import cors from "cors";
 import dotenv from 'dotenv';
-import { getJobStats, getStats, getUser, githubLogin, loginUser, logoutUser, queueStatus, requireAuth, signupUser, uploadLogs } from './endpoints';
+import { getJobStats, getStats, getUser, githubLogin, logoutUser, queueStatus, requireAuth, upload, uploadLogs, uploadLogsHandler } from './endpoints';
+import { redis } from './redisClient';
 
 dotenv.config();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.post('/api/upload-logs', uploadLogs);
+redis.on("connect", () => console.log("Redis connected"));
+redis.on("error", (err) => console.error("Redis error:", err));
+
+app.post("/api/upload-logs", upload.single("file"), uploadLogsHandler);
 app.get('/api/stats', getStats);
 app.get('/api/stats/:jobId', getJobStats);
 app.get('/api/queue-status', queueStatus);
 
-app.post('/api/auth/login', loginUser);
-app.post('/api/auth/signup', signupUser);
 app.post('/api/auth/logout', logoutUser);
 app.get('/api/auth/user', getUser);
 app.get('/api/auth/github-login', githubLogin);
