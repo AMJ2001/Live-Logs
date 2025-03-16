@@ -28,16 +28,21 @@ export const uploadLogsHandler = async (req: Request, res: Response) => {
   }
 };
 
-export const getStats = async (_req: Request, res: Response) => {
+export const getStats = async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabase.from('log_stats').select('*');
+    const token = req.headers.authorization as string;
+    if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
+
+    const userPayload = await supabase.auth.getUser(token);
+    const { data, error } = await supabase.from('log_stats').select('*').eq('user_id', userPayload.data?.user?.id);
     if (error) { throw error; }
 
     const formattedData = data.map((ele: any) => ({
-      jobId: ele.jobid, 
-      fileName: ele.file_path.split('/').pop(), 
-      status: ele.error_count > 0 ? "Failed" : "Success", 
+      jobId: ele.jobid,
+      fileName: ele.file_path.split('/').pop(),
+      status: ele.error_count > 0 ? "Failed" : "Success",
     }));
+
     res.json(formattedData);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -47,15 +52,21 @@ export const getStats = async (_req: Request, res: Response) => {
 export const getJobStats = async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params as Record<string, string>;
-    const { data, error } = await supabase.from('log_stats').select('*').eq('jobid', jobId);
+    const token = req.headers.authorization as string;
+    if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
+
+    const userPayload = await supabase.auth.getUser(token);
+    const { data, error } = await supabase.from('log_stats').select('*').eq('jobid', jobId).eq('user_id', userPayload.data?.user?.id);
     if (error) { throw error; }
+
     const formattedData = data.map((ele: any) => ({
-      jobId: ele.jobid, 
-      fileName: ele.file_path.split('/').pop(), 
-      status: ele.error_count > 0 ? "Failed" : "Success", 
+      jobId: ele.jobid,
+      fileName: ele.file_path.split('/').pop(),
+      status: ele.error_count > 0 ? "Failed" : "Success",
       keywords: ele.keyword_hits,
       ips: ele.ip_hits
     }));
+
     res.json(formattedData);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -78,8 +89,11 @@ export const requireAuth = async (req: Request, res: Response, next: Function) =
     const token = req.headers.authorization as string;
     if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
     const { data, error } = await supabase.auth.getUser(token);
-    if (error) { res.status(401).json({ error: 'Invalid token' }); }
-    next();
+    if (error) { 
+      res.status(401).json({ error: 'Invalid token', reason: error });
+    } else {
+      next();
+    }
   } catch (err) {
     res.status(400).json({ error: 'Unable to authorize' });
   }

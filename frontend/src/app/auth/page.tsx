@@ -44,7 +44,28 @@ export default function Auth() {
   };
 
   const handleGitHubAuth = async () => {
-    await supabase.auth.signInWithOAuth({ provider: "github" });
+    setLoading(true);
+  
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/auth`,
+      },
+    });
+  
+    if (error) {
+      console.error("GitHub Auth Error:", error.message);
+      setLoading(false);
+      return;
+    }
+  
+    // Listen for authentication state changes after redirection
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.access_token) {
+        localStorage.setItem("supabase_jwt", session.access_token);
+        router.push("/");
+      }
+    });
   };
 
   return (

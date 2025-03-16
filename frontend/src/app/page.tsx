@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import { supabase } from "@/utils";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 
 const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function Home() {
+  const router = useRouter();
   const [queueStatus, setQueueStatus] = useState<{ active: number; waiting: number; completed: number } | null>(null);
   const [jobs, setJobs] = useState<{ jobId: string; fileName: string; status: string }[]>([]);
   const [selectedJobStats, setSelectedJobStats] = useState<{ jobId: string; errors: number; keywords: string[]; ips: string[] } | null>(null);
@@ -41,8 +41,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchJobs();
-    fetchQueueStatus();
+    if (!!localStorage.getItem('supabase_jwt')) {
+      fetchJobs();
+      fetchQueueStatus();
+    }
   }, []);
 
   const fetchQueueStatus = async () => {
@@ -121,14 +123,15 @@ export default function Home() {
 
   const logout = async () => {
     await supabase.auth.signOut();
+    localStorage.clear();
     router.push("/auth");
   };
 
-  return (
+  return !!localStorage.getItem('supabase_jwt') && (
     <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 px-4 position-relative">
     <button
       onClick={logout}
-      className="btn btn-primary position-absolute"
+      className="btn position-absolute"
       style={{
         top: "16px",
         left: "16px",
@@ -140,7 +143,7 @@ export default function Home() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass p-4 shadow-lg text-center w-100 mb-5"
+      className="p-4 shadow-lg text-center w-100 mb-5"
       style={{
         maxWidth: "700px",
       }}
@@ -160,7 +163,7 @@ export default function Home() {
         onChange={(e) => console.log(e.target.files?.[0])}
       />
       <button
-        className="btn btn-primary w-100"
+        className="btn w-100"
         onClick={handleFileUpload}
         disabled={uploading}
       >
