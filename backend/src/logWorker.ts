@@ -41,7 +41,6 @@ const processLog = async (job: Job) => {
     }
   }
 
-  // Store stats in Supabase
   const { error } = await supabase.from('log_stats').insert({
     file_path: job.data.filePath,
     total_lines: totalLines,

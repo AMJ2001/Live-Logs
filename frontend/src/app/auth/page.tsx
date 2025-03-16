@@ -59,7 +59,6 @@ export default function Auth() {
       return;
     }
   
-    // Listen for authentication state changes after redirection
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.access_token) {
         localStorage.setItem("supabase_jwt", session.access_token);
