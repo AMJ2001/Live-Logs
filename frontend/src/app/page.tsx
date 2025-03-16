@@ -107,7 +107,7 @@ export default function Home() {
         headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) { throw new Error("Upload failed"); }
 
       alert("File uploaded successfully 🎉");
       fetchQueueStatus();
@@ -125,121 +125,153 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4">
-      <div>
-        <button onClick={logout}>Logout</button>
-      </div>
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="glass p-10 max-w-3xl w-full text-center shadow-lg"
+    <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 px-4 position-relative">
+    <button
+      onClick={logout}
+      className="btn btn-primary position-absolute"
+      style={{
+        top: "16px",
+        left: "16px",
+      }}
+    >
+      Logout
+    </button>
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="glass p-4 shadow-lg text-center w-100 mb-5"
+      style={{
+        maxWidth: "700px",
+      }}
+    >
+      <h1 className="display-4 fw-bold text-white text-center mb-4">Log Dashboard</h1>
+      <p className="text-secondary mb-4">Monitor and manage log processing in real-time.</p>
+    </motion.div>
+    <div
+      className="glass p-4 shadow-lg text-center w-100 mb-5"
+      style={{
+        maxWidth: "700px",
+      }}
+    >
+      <input
+        type="file"
+        className="form-control mb-3"
+        onChange={(e) => console.log(e.target.files?.[0])}
+      />
+      <button
+        className="btn btn-primary w-100"
+        onClick={handleFileUpload}
+        disabled={uploading}
       >
-        <h1 className="text-4xl font-bold mb-6">Log Processing Dashboard</h1>
-        <p className="text-gray-300 mb-8">Monitor and manage log processing in real-time.</p>
-
-        {/* File Upload */}
-        <div className="glass p-6 rounded-xl shadow-lg">
-          <input type="file" className="text-gray-300 mb-4" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <button
-            className="btn w-full flex items-center justify-center"
-            onClick={handleFileUpload}
-            disabled={uploading}
-          >
-            {uploading ? <Loader2 className="animate-spin" /> : "Upload Log File"}
-          </button>
-        </div>
-
-        {/* Queue Status */}
-        <motion.div className="mt-6 p-4 glass rounded-lg w-full">
-          <h2 className="text-xl font-semibold text-center mb-4">Queue Status</h2>
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Active</th>
-                  <th>Waiting</th>
-                  <th>Completed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {queueStatus ? (
-                  <tr className="hover:bg-gray-700 transition-all duration-200">
-                    <td>{queueStatus.active}</td>
-                    <td>{queueStatus.waiting}</td>
-                    <td>{queueStatus.completed}</td>
-                  </tr>
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="text-center p-3">
-                      Loading...
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-
-        {/* Jobs Table */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
-        >
-          <h2 className="text-2xl font-semibold text-center mb-4">Jobs</h2>
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Job ID</th>
-                  <th>File Name</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jobs.length > 0 ? (
-                  jobs.map((job) => (
-                    <tr key={job.jobId} className="hover:bg-gray-700 transition-all duration-200">
-                      <td
-                        className="cursor-pointer text-blue-400 hover:underline"
-                        onClick={() => fetchJobStats(job.jobId)}
-                      >
-                        {job.jobId}
-                      </td>
-                      <td>{job.fileName}</td>
-                      <td>{job.status}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="text-center p-3">
-                      No jobs available 💤
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-
-        {/* Selected Job Stats */}
-        {selectedJobStats && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mt-8 glass p-6 rounded-xl shadow-xl w-full"
-          >
-            <h2 className="text-2xl font-semibold text-center mb-4">Job Details</h2>
-            <p>Job ID: {selectedJobStats.jobId}</p>
-            <p>Errors: {selectedJobStats.errors || 'None'}</p>
-            <p>Keywords: {selectedJobStats.keywords}</p>
-            <p>IP Addresses: {selectedJobStats.ips}</p>
-          </motion.div>
+        {uploading ? (
+          <div
+            className="spinner-border spinner-border-sm"
+            role="status"
+          ></div>
+        ) : (
+          "Upload Log File"
         )}
-      </motion.div>
+      </button>
     </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="glass p-4 shadow-lg text-center w-100 mb-5"
+      style={{
+        maxWidth: "800px",
+      }}
+    >
+      <h2 className="h5 text-center mb-3">Queue Status</h2>
+      <div className="table-responsive">
+        <table className="table table-bordered text-white">
+          <thead className="thead-light">
+            <tr>
+              <th>Active</th>
+              <th>Waiting</th>
+              <th>Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {queueStatus ? (
+              <tr>
+                <td>{queueStatus.active}</td>
+                <td>{queueStatus.waiting}</td>
+                <td>{queueStatus.completed}</td>
+              </tr>
+            ) : (
+              <tr>
+                <td colSpan={3} className="text-center">
+                  Loading...
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className="glass p-4 shadow-lg text-center w-100 mb-5"
+      style={{
+        maxWidth: "800px",
+      }}
+    >
+      <h2 className="h5 text-center mb-3">Jobs</h2>
+      <div className="table-responsive">
+        <table className="table table-bordered text-white">
+          <thead className="thead-light">
+            <tr>
+              <th>Job ID</th>
+              <th>File Name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.length > 0 ? (
+              jobs.map((job: any) => (
+                <tr key={job.jobId}>
+                  <td
+                    className="text-primary cursor-pointer"
+                    onClick={() => fetchJobStats(job.jobId)}
+                  >
+                    {job.jobId}
+                  </td>
+                  <td>{job.fileName}</td>
+                  <td>{job.status}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="text-center">
+                  No jobs available 💤
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+    {selectedJobStats && (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="glass p-4 shadow-lg text-center w-100 mb-5"
+        style={{
+          maxWidth: "800px",
+        }}
+      >
+        <h2 className="h5 text-center mb-3">Job Details</h2>
+        <p>Job ID: {selectedJobStats.jobId}</p>
+        <p>Errors: {selectedJobStats.errors || "None"}</p>
+        <p>Keywords: {selectedJobStats.keywords}</p>
+        <p>IP Addresses: {selectedJobStats.ips}</p>
+      </motion.div>
+    )}
+  </div>
   );
 }
