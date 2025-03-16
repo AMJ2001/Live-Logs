@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  nextjs:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: https://yzyrlxxrjgupfrpnsscm.supabase.co
+      NEXT_PUBLIC_SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6eXJseHhyamd1cGZycG5zc2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4MTAxMTQsImV4cCI6MjA1NzM4NjExNH0.3aFqIzhs5q7Y0AjTSjhnOIBCR94-PujvMkU8yFwGSIQ
+      NEXT_PUBLIC_WEBSOCKET_URL: ws://localhost:3001
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:5000
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TRACK_KEYWORDS: error,failure,critical
+      TRACK_IPS: 192.168.1.1,203.0.113.5
+      SUPABASE_URL: https://yzyrlxxrjgupfrpnsscm.supabase.co
+      SUPABASE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6eXJseHhyamd1cGZycG5zc2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4MTAxMTQsImV4cCI6MjA1NzM4NjExNH0.3aFqIzhs5q7Y0AjTSjhnOIBCR94-PujvMkU8yFwGSIQ
+      UPLOAD_PATH: uploads/
+      WEBSOCKET_PORT: 3001
+    depends_on:
+      - redis
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

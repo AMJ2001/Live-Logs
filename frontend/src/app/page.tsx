@@ -65,7 +65,14 @@ export default function Home() {
       const res = await fetch(`${API_BASE_URL}/api/stats`, {
         headers: { authorization: localStorage.getItem("supabase_jwt") || "" },
       });
-      if (!res.ok) throw new Error("Failed to fetch jobs");
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.alert("Session timed out, please login again.");
+          await logout();
+          return;
+        }
+        throw new Error("Failed to fetch jobs");
+      }
       const data = await res.json();
       setJobs(data);
     } catch (error: any) {
