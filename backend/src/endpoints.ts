@@ -20,7 +20,11 @@ export const uploadLogsHandler = async (req: Request, res: Response) => {
       res.status(400).json({ error: "No file uploaded" });
     } else {
       const filePath = req.file.path;
-      const job = await logQueue.add("process-log", { filePath });
+      const token = req.headers.authorization as string;
+      if (!token) { res.status(401).json({ error: 'Unauthorized' }); }
+
+      const userPayload = await supabase.auth.getUser(token);
+      const job = await logQueue.add("process-log", { filePath, user_id: userPayload.data?.user?.id });
       res.json({ jobId: job.id, message: "Log file queued for processing" });
     }
   } catch (error: any) {

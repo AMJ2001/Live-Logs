@@ -43,6 +43,7 @@ export const processLog = async (job: Job) => {
     }
 
     const { error } = await supabase.from('log_stats').insert({
+      user_id: job.data.user_id,
       file_path: job.data.filePath,
       total_lines: totalLines,
       error_count: errorCount,

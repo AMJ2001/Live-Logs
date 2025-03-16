@@ -136,136 +136,85 @@ export default function Home() {
 
   return !!localStorage.getItem('supabase_jwt') && (
     <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 px-4 position-relative">
-    <button
-      onClick={logout}
-      className="btn position-absolute"
-      style={{
-        top: "16px",
-        left: "16px",
-      }}
-    >
-      Logout
-    </button>
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="p-4 shadow-lg text-center w-100 mb-5"
-      style={{
-        maxWidth: "700px",
-      }}
-    >
-      <h1 className="display-4 fw-bold text-white text-center mb-4">Log Dashboard</h1>
-      <p className="text-secondary mb-4">Monitor and manage log processing in real-time.</p>
-    </motion.div>
-    <div
-      className="glass p-4 shadow-lg text-center w-100 mb-5"
-      style={{
-        maxWidth: "700px",
-      }}
-    >
-      <input
-        type="file"
-        className="form-control mb-3"
-        onChange={(e) => console.log(e.target.files?.[0])}
-      />
       <button
-        className="btn w-100"
-        onClick={handleFileUpload}
-        disabled={uploading}
+        onClick={logout}
+        className="btn position-absolute"
+        style={{
+          top: "16px",
+          left: "16px",
+        }}
       >
-        {uploading ? (
-          <div
-            className="spinner-border spinner-border-sm"
-            role="status"
-          ></div>
-        ) : (
-          "Upload Log File"
-        )}
+        Logout
       </button>
-    </div>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="glass p-4 shadow-lg text-center w-100 mb-5"
-      style={{
-        maxWidth: "800px",
-      }}
-    >
-      <h2 className="h5 text-center mb-3">Queue Status</h2>
-      <div className="table-responsive">
-        <table className="table table-bordered text-white">
-          <thead className="thead-light">
-            <tr>
-              <th>Active</th>
-              <th>Waiting</th>
-              <th>Completed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {queueStatus ? (
-              <tr>
-                <td>{queueStatus.active}</td>
-                <td>{queueStatus.waiting}</td>
-                <td>{queueStatus.completed}</td>
-              </tr>
-            ) : (
-              <tr>
-                <td colSpan={3} className="text-center">
-                  Loading...
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="p-4 shadow-lg text-center w-100 mb-5"
+        style={{
+          maxWidth: "700px",
+        }}
+      >
+        <h1 className="display-4 fw-bold text-white text-center mb-4">Log Dashboard</h1>
+        <p className="text-secondary mb-4">Monitor and manage log processing in real-time.</p>
+      </motion.div>
+      <div className="glass p-4 shadow-lg text-center w-100 mb-5" style={{ maxWidth: "700px" }}>
+        <input type="file" className="form-control mb-3"
+          onChange={(e) => {
+            const selectedFile = e.target.files?.[0];
+            if (selectedFile) {
+              setFile(selectedFile);
+            }
+          }}
+        />
+        <button className="btn w-100" onClick={handleFileUpload} disabled={uploading}>
+          {uploading ? (
+            <div
+              className="spinner-border spinner-border-sm"
+              role="status"
+            ></div>
+          ) : (
+            "Upload Log File"
+          )}
+        </button>
       </div>
-    </motion.div>
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="glass p-4 shadow-lg text-center w-100 mb-5"
-      style={{
-        maxWidth: "800px",
-      }}
-    >
-      <h2 className="h5 text-center mb-3">Jobs</h2>
-      <div className="table-responsive">
-        <table className="table table-bordered text-white">
-          <thead className="thead-light">
-            <tr>
-              <th>Job ID</th>
-              <th>File Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.length > 0 ? (
-              jobs.map((job: any) => (
-                <tr key={job.jobId}>
-                  <td
-                    className="text-primary cursor-pointer"
-                    onClick={() => fetchJobStats(job.jobId)}
-                  >
-                    {job.jobId}
-                  </td>
-                  <td>{job.fileName}</td>
-                  <td>{job.status}</td>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="glass p-4 shadow-lg text-center w-100 mb-5"
+        style={{
+          maxWidth: "800px",
+        }}
+      >
+        <h2 className="h5 text-center mb-3">Queue Status</h2>
+        <div className="table-responsive">
+          <table className="table table-bordered text-white">
+            <thead className="thead-light">
+              <tr>
+                <th>Active</th>
+                <th>Waiting</th>
+                <th>Completed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queueStatus ? (
+                <tr>
+                  <td>{queueStatus.active}</td>
+                  <td>{queueStatus.waiting}</td>
+                  <td>{queueStatus.completed}</td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="text-center">
-                  No jobs available 💤
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
-    {selectedJobStats && (
+              ) : (
+                <tr>
+                  <td colSpan={3} className="text-center">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -275,13 +224,58 @@ export default function Home() {
           maxWidth: "800px",
         }}
       >
-        <h2 className="h5 text-center mb-3">Job Details</h2>
-        <p>Job ID: {selectedJobStats.jobId}</p>
-        <p>Errors: {selectedJobStats.errors || "None"}</p>
-        <p>Keywords: {selectedJobStats.keywords}</p>
-        <p>IP Addresses: {selectedJobStats.ips}</p>
+        <h2 className="h5 text-center mb-3">Jobs</h2>
+        <div className="table-responsive">
+          <table className="table table-bordered text-white">
+            <thead className="thead-light">
+              <tr>
+                <th>Job ID</th>
+                <th>File Name</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.length > 0 ? (
+                jobs.map((job: any) => (
+                  <tr key={job.jobId}>
+                    <td
+                      className="text-primary cursor-pointer"
+                      onClick={() => fetchJobStats(job.jobId)}
+                    >
+                      {job.jobId}
+                    </td>
+                    <td>{job.fileName}</td>
+                    <td>{job.status}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="text-center">
+                    No jobs available 💤
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
-    )}
-  </div>
+      {selectedJobStats && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="glass p-4 shadow-lg text-center w-100 mb-5"
+          style={{
+            maxWidth: "800px",
+          }}
+        >
+          <h2 className="h5 text-center mb-3">Job Details</h2>
+          <p>Job ID: {selectedJobStats.jobId}</p>
+          <p>Errors: {selectedJobStats.errors || "None"}</p>
+          <p>Keywords: {selectedJobStats.keywords || 0}</p>
+          <p>IP Addresses: {selectedJobStats.ips || 0}</p>
+        </motion.div>
+      )}
+    </div>
   );
 }
