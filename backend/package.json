@@ -3,7 +3,7 @@
   "scripts": {
     "dev": "redis-server & ts-node src/server.ts",
     "build": "tsc",
-    "start": "redis-server & node dist/server.js",
+    "start": "redis-server & ts-node src/server.ts",
     "test": "jest --coverage"
   },
   "dependencies": {
