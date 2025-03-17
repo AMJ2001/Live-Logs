@@ -46,6 +46,9 @@ You will have to setup both frontend and backend folders separately and run the 
   npm run build
   npm start
 ```
+
+Here is a sample log file to test with: https://drive.google.com/file/d/1aj6SxL2P9ONPQXbGv7GNqhbc9xOzRxal/view?usp=sharing
+<br>
 ## **📊 Benchmarks**
 
 Here are some performance benchmarks for the Real-Time Log Processing system:
